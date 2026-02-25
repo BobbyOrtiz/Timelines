@@ -1,5 +1,19 @@
 <Solution>
-  <Folder Name="/docs/" />
+  <Folder Name="/docs/">
+    <File Path="docs/api.md" />
+    <File Path="docs/architecture.md" />
+    <File Path="docs/auth.md" />
+    <File Path="docs/decisions.md" />
+    <File Path="docs/domain-model.md" />
+    <File Path="docs/instructions.md" />
+    <File Path="docs/spec.md" />
+    <File Path="docs/storage.md" />
+    <File Path="docs/ui-workflow.md" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="README.md" />
+  </Folder>
   <Project Path="Timelines.Admin/Timelines.Admin.csproj" />
   <Project Path="Timelines.Api/Timelines.Api.csproj" />
   <Project Path="Timelines.Data/Timelines.Data.csproj" />
