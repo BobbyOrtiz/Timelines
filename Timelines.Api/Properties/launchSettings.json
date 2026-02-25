@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Timelines.Api": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7094",
+      "launchBrowser": false
+    }
+  }
+}

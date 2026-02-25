@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/docs/" />
+  <Project Path="Timelines.Admin/Timelines.Admin.csproj" />
+  <Project Path="Timelines.Api/Timelines.Api.csproj" />
+  <Project Path="Timelines.Data/Timelines.Data.csproj" />
+  <Project Path="Timelines.Mobile/Timelines.Mobile.csproj" />
+  <Project Path="Timelines.Shared/Timelines.Shared.csproj" />
+  <Project Path="Timelines.UI/Timelines.UI.csproj" />
+  <Project Path="Timelines.Web/Timelines.Web.csproj" />
+</Solution>
