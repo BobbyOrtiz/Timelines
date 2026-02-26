@@ -36,8 +36,4 @@ builder.Services.AddDbContext<TimelinesDbContext>(options =>
 // Register DevUserContext
 builder.Services.AddScoped<DevUserContext>();
 
-builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
-
 builder.Build().Run();
