@@ -1,0 +1,126 @@
+@page "/timeline/{TimelineId:guid}"
+@using Timelines.Shared.Contracts
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h4">@Timeline?.Title</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => OnCreateItem.InvokeAsync())">
+                Add Item
+            </MudButton>
+        </MudStack>
+
+        @if (!string.IsNullOrEmpty(Timeline?.Description))
+        {
+            <MudText Typo="Typo.body1">@Timeline.Description</MudText>
+        }
+
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary">
+                    <MudButton OnClick="@(() => ChangeViewMode(TimelineViewMode.Timeline))"
+                               Variant="@(ViewMode == TimelineViewMode.Timeline ? Variant.Filled : Variant.Outlined)">
+                        <MudIcon Icon="@Icons.Material.Filled.ViewTimeline" />
+                        Timeline
+                    </MudButton>
+                    <MudButton OnClick="@(() => ChangeViewMode(TimelineViewMode.Feed))"
+                               Variant="@(ViewMode == TimelineViewMode.Feed ? Variant.Filled : Variant.Outlined)">
+                        <MudIcon Icon="@Icons.Material.Filled.ViewList" />
+                        Feed
+                    </MudButton>
+                </MudButtonGroup>
+
+                @if (ViewMode == TimelineViewMode.Timeline)
+                {
+                    <MudButtonGroup Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small">
+                        <MudButton OnClick="@(() => ChangeZoomLevel(TimelineZoomLevel.Decade))"
+                                   Variant="@(ZoomLevel == TimelineZoomLevel.Decade ? Variant.Filled : Variant.Outlined)">
+                            Decade
+                        </MudButton>
+                        <MudButton OnClick="@(() => ChangeZoomLevel(TimelineZoomLevel.Year))"
+                                   Variant="@(ZoomLevel == TimelineZoomLevel.Year ? Variant.Filled : Variant.Outlined)">
+                            Year
+                        </MudButton>
+                        <MudButton OnClick="@(() => ChangeZoomLevel(TimelineZoomLevel.Month))"
+                                   Variant="@(ZoomLevel == TimelineZoomLevel.Month ? Variant.Filled : Variant.Outlined)">
+                            Month
+                        </MudButton>
+                        <MudButton OnClick="@(() => ChangeZoomLevel(TimelineZoomLevel.Day))"
+                                   Variant="@(ZoomLevel == TimelineZoomLevel.Day ? Variant.Filled : Variant.Outlined)">
+                            Day
+                        </MudButton>
+                    </MudButtonGroup>
+                }
+            </MudStack>
+        </MudPaper>
+
+        @if (ViewMode == TimelineViewMode.Timeline)
+        {
+            <TimelineView Items="@Items" 
+                          Lanes="@Lanes" 
+                          ZoomLevel="@ZoomLevel"
+                          OnEditItem="@OnEditItem"
+                          OnPublishToggle="@OnPublishToggle" />
+        }
+        else
+        {
+            <FeedView Items="@Items" 
+                      Lanes="@Lanes"
+                      OnEditItem="@OnEditItem"
+                      OnPublishToggle="@OnPublishToggle" />
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public Guid TimelineId { get; set; }
+
+    [Parameter]
+    public TimelineDto? Timeline { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<LaneDto>? Lanes { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<TagDto>? Tags { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<TimelineItemDto>? Items { get; set; }
+
+    [Parameter]
+    public TimelineViewMode ViewMode { get; set; } = TimelineViewMode.Timeline;
+
+    [Parameter]
+    public EventCallback<TimelineViewMode> ViewModeChanged { get; set; }
+
+    [Parameter]
+    public TimelineZoomLevel ZoomLevel { get; set; } = TimelineZoomLevel.Year;
+
+    [Parameter]
+    public EventCallback<TimelineZoomLevel> ZoomLevelChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnCreateItem { get; set; }
+
+    [Parameter]
+    public EventCallback<TimelineItemDto> OnEditItem { get; set; }
+
+    [Parameter]
+    public EventCallback<TimelineItemDto> OnPublishToggle { get; set; }
+
+    private async Task ChangeViewMode(TimelineViewMode mode)
+    {
+        ViewMode = mode;
+        await ViewModeChanged.InvokeAsync(mode);
+    }
+
+    private async Task ChangeZoomLevel(TimelineZoomLevel level)
+    {
+        ZoomLevel = level;
+        await ZoomLevelChanged.InvokeAsync(level);
+    }
+}

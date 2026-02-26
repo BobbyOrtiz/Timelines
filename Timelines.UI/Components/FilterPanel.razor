@@ -1,0 +1,153 @@
+@using Timelines.Shared.Contracts
+@using MudBlazor
+
+<MudStack Spacing="3">
+    <MudTextField T="string" Label="Search" @bind-Value="SearchText" 
+                  Variant="Variant.Outlined" 
+                  Adornment="Adornment.Start" 
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Immediate="true"
+                  DebounceInterval="300"
+                  OnDebounceIntervalElapsed="OnSearchChanged" />
+
+    @if (Lanes != null && Lanes.Count > 0)
+    {
+        <MudSelect T="Guid" Label="Lanes" MultiSelection="true" @bind-SelectedValues="@_selectedLaneIds" 
+                   Variant="Variant.Outlined" Dense="true">
+            @foreach (var lane in Lanes)
+            {
+                <MudSelectItem Value="@lane.Id">@lane.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
+
+    @if (Tags != null && Tags.Count > 0)
+    {
+        <MudSelect T="Guid" Label="Tags" MultiSelection="true" @bind-SelectedValues="@_selectedTagIds" 
+                   Variant="Variant.Outlined" Dense="true">
+            @foreach (var tag in Tags)
+            {
+                <MudSelectItem Value="@tag.Id">@tag.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
+
+    @if (Types != null && Types.Count > 0)
+    {
+        <MudSelect T="TimelineItemType" Label="Types" MultiSelection="true" @bind-SelectedValues="@_selectedTypes" 
+                   Variant="Variant.Outlined" Dense="true">
+            @foreach (var type in Types)
+            {
+                <MudSelectItem Value="@type">@type.ToString()</MudSelectItem>
+            }
+        </MudSelect>
+    }
+
+    <MudSwitch T="bool" Label="Include Drafts" @bind-Value="IncludeDrafts" Color="Color.Primary" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="ApplyFilters">
+        Apply Filters
+    </MudButton>
+
+    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" OnClick="ClearFilters">
+        Clear Filters
+    </MudButton>
+</MudStack>
+
+@code {
+    private IReadOnlyCollection<Guid> _selectedLaneIds = new HashSet<Guid>();
+    private IReadOnlyCollection<Guid> _selectedTagIds = new HashSet<Guid>();
+    private IReadOnlyCollection<TimelineItemType> _selectedTypes = new HashSet<TimelineItemType>();
+
+    [Parameter]
+    public string SearchText { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SearchTextChanged { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<LaneDto>? Lanes { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<TagDto>? Tags { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<TimelineItemType>? Types { get; set; }
+
+    [Parameter]
+    public HashSet<Guid>? SelectedLaneIds { get; set; }
+
+    [Parameter]
+    public EventCallback<HashSet<Guid>> SelectedLaneIdsChanged { get; set; }
+
+    [Parameter]
+    public HashSet<Guid>? SelectedTagIds { get; set; }
+
+    [Parameter]
+    public EventCallback<HashSet<Guid>> SelectedTagIdsChanged { get; set; }
+
+    [Parameter]
+    public HashSet<TimelineItemType>? SelectedTypes { get; set; }
+
+    [Parameter]
+    public EventCallback<HashSet<TimelineItemType>> SelectedTypesChanged { get; set; }
+
+    [Parameter]
+    public bool IncludeDrafts { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> IncludeDraftsChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnFiltersChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (SelectedLaneIds != null)
+            _selectedLaneIds = SelectedLaneIds;
+        if (SelectedTagIds != null)
+            _selectedTagIds = SelectedTagIds;
+        if (SelectedTypes != null)
+            _selectedTypes = SelectedTypes;
+    }
+
+    private async Task OnSearchChanged()
+    {
+        if (SearchTextChanged.HasDelegate)
+            await SearchTextChanged.InvokeAsync(SearchText);
+    }
+
+    private async Task ApplyFilters()
+    {
+        if (SelectedLaneIdsChanged.HasDelegate)
+            await SelectedLaneIdsChanged.InvokeAsync(_selectedLaneIds.ToHashSet());
+        if (SelectedTagIdsChanged.HasDelegate)
+            await SelectedTagIdsChanged.InvokeAsync(_selectedTagIds.ToHashSet());
+        if (SelectedTypesChanged.HasDelegate)
+            await SelectedTypesChanged.InvokeAsync(_selectedTypes.ToHashSet());
+        if (OnFiltersChanged.HasDelegate)
+            await OnFiltersChanged.InvokeAsync();
+    }
+
+    private async Task ClearFilters()
+    {
+        SearchText = string.Empty;
+        _selectedLaneIds = new HashSet<Guid>();
+        _selectedTagIds = new HashSet<Guid>();
+        _selectedTypes = new HashSet<TimelineItemType>();
+        IncludeDrafts = true;
+
+        if (SearchTextChanged.HasDelegate)
+            await SearchTextChanged.InvokeAsync(SearchText);
+        if (SelectedLaneIdsChanged.HasDelegate)
+            await SelectedLaneIdsChanged.InvokeAsync(new HashSet<Guid>());
+        if (SelectedTagIdsChanged.HasDelegate)
+            await SelectedTagIdsChanged.InvokeAsync(new HashSet<Guid>());
+        if (SelectedTypesChanged.HasDelegate)
+            await SelectedTypesChanged.InvokeAsync(new HashSet<TimelineItemType>());
+        if (IncludeDraftsChanged.HasDelegate)
+            await IncludeDraftsChanged.InvokeAsync(IncludeDrafts);
+        if (OnFiltersChanged.HasDelegate)
+            await OnFiltersChanged.InvokeAsync();
+    }
+}

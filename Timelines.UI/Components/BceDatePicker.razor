@@ -1,0 +1,114 @@
+@using Timelines.Shared.Domain
+@using MudBlazor
+
+<MudStack Spacing="3">
+    <MudSelect T="TimelineEra" Label="Era" @bind-Value="_era" Variant="Variant.Outlined" Dense="true">
+        <MudSelectItem Value="TimelineEra.Bce">BCE</MudSelectItem>
+        <MudSelectItem Value="TimelineEra.Ce">CE</MudSelectItem>
+    </MudSelect>
+
+    <MudSelect T="TimelineDatePrecision" Label="Precision" @bind-Value="_precision" Variant="Variant.Outlined" Dense="true">
+        <MudSelectItem Value="TimelineDatePrecision.Year">Year</MudSelectItem>
+        <MudSelectItem Value="TimelineDatePrecision.Month">Month</MudSelectItem>
+        <MudSelectItem Value="TimelineDatePrecision.Day">Day</MudSelectItem>
+    </MudSelect>
+
+    <MudNumericField T="int" Label="Year" @bind-Value="_year" Variant="Variant.Outlined" Min="1" Dense="true" />
+
+    @if (_precision >= TimelineDatePrecision.Month)
+    {
+        <MudSelect T="int?" Label="Month" @bind-Value="_month" Variant="Variant.Outlined" Dense="true">
+            <MudSelectItem Value="@((int?)1)">January</MudSelectItem>
+            <MudSelectItem Value="@((int?)2)">February</MudSelectItem>
+            <MudSelectItem Value="@((int?)3)">March</MudSelectItem>
+            <MudSelectItem Value="@((int?)4)">April</MudSelectItem>
+            <MudSelectItem Value="@((int?)5)">May</MudSelectItem>
+            <MudSelectItem Value="@((int?)6)">June</MudSelectItem>
+            <MudSelectItem Value="@((int?)7)">July</MudSelectItem>
+            <MudSelectItem Value="@((int?)8)">August</MudSelectItem>
+            <MudSelectItem Value="@((int?)9)">September</MudSelectItem>
+            <MudSelectItem Value="@((int?)10)">October</MudSelectItem>
+            <MudSelectItem Value="@((int?)11)">November</MudSelectItem>
+            <MudSelectItem Value="@((int?)12)">December</MudSelectItem>
+        </MudSelect>
+    }
+
+    @if (_precision == TimelineDatePrecision.Day)
+    {
+        <MudNumericField T="int?" Label="Day" @bind-Value="_day" Variant="Variant.Outlined" Min="1" Max="31" Dense="true" />
+    }
+
+    <MudSwitch T="bool" Label="Approximate" @bind-Value="_isApprox" Color="Color.Primary" />
+
+    @if (!string.IsNullOrEmpty(_validationError))
+    {
+        <MudAlert Severity="Severity.Error">@_validationError</MudAlert>
+    }
+</MudStack>
+
+@code {
+    private TimelineEra _era = TimelineEra.Ce;
+    private int _year = 1;
+    private int? _month = null;
+    private int? _day = null;
+    private TimelineDatePrecision _precision = TimelineDatePrecision.Year;
+    private bool _isApprox = false;
+    private string? _validationError = null;
+
+    [Parameter]
+    public TimelineDate? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<TimelineDate> ValueChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Value != null)
+        {
+            _era = Value.Era;
+            _year = Value.Year;
+            _month = Value.Month;
+            _day = Value.Day;
+            _precision = Value.Precision;
+            _isApprox = Value.IsApprox;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await NotifyValueChanged();
+        }
+    }
+
+    private async Task NotifyValueChanged()
+    {
+        // Ensure values match precision
+        if (_precision == TimelineDatePrecision.Year)
+        {
+            _month = null;
+            _day = null;
+        }
+        else if (_precision == TimelineDatePrecision.Month)
+        {
+            _day = null;
+        }
+
+        var date = new TimelineDate(_era, _year, _month, _day, _precision, _isApprox);
+        var validation = date.Validate();
+
+        if (validation.IsValid)
+        {
+            _validationError = null;
+            if (ValueChanged.HasDelegate)
+            {
+                await ValueChanged.InvokeAsync(date);
+            }
+        }
+        else
+        {
+            _validationError = validation.Error;
+        }
+    }
+}

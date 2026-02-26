@@ -1,0 +1,36 @@
+@using Timelines.Shared.Contracts
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    @if (Items == null || Items.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">No items to display</MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="2">
+            @foreach (var item in Items)
+            {
+                var laneName = Lanes?.FirstOrDefault(l => l.Id == item.LaneId)?.Name;
+                <ItemCard Item="@item" 
+                          LaneName="@laneName" 
+                          OnEdit="@(() => OnEditItem.InvokeAsync(item))"
+                          OnPublishToggle="@(() => OnPublishToggle.InvokeAsync(item))" />
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TimelineItemDto>? Items { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<LaneDto>? Lanes { get; set; }
+
+    [Parameter]
+    public EventCallback<TimelineItemDto> OnEditItem { get; set; }
+
+    [Parameter]
+    public EventCallback<TimelineItemDto> OnPublishToggle { get; set; }
+}

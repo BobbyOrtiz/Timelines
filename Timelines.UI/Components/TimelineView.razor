@@ -1,0 +1,170 @@
+@using Timelines.Shared.Contracts
+@using Timelines.Shared.Domain
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="overflow-x-auto">
+    @if (Items == null || Items.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">No items to display</MudAlert>
+    }
+    else
+    {
+        <MudStack Row="true" Spacing="4" Class="pa-4">
+            @foreach (var bucket in GetBuckets())
+            {
+                <MudPaper Elevation="2" Class="pa-4" Style="min-width: 300px;">
+                    <MudText Typo="Typo.h6" Class="mb-3">@bucket.Label</MudText>
+                    
+                    @if (bucket.Items.Count <= MaxItemsBeforeCollapse)
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var item in bucket.Items)
+                            {
+                                var laneName = Lanes?.FirstOrDefault(l => l.Id == item.LaneId)?.Name;
+                                <ItemCard Item="@item" 
+                                          LaneName="@laneName" 
+                                          OnEdit="@(() => OnEditItem.InvokeAsync(item))"
+                                          OnPublishToggle="@(() => OnPublishToggle.InvokeAsync(item))" />
+                            }
+                        </MudStack>
+                    }
+                    else
+                    {
+                        @if (_expandedBuckets.Contains(bucket.Key))
+                        {
+                            <MudStack Spacing="2">
+                                @foreach (var item in bucket.Items)
+                                {
+                                    var laneName = Lanes?.FirstOrDefault(l => l.Id == item.LaneId)?.Name;
+                                    <ItemCard Item="@item" 
+                                              LaneName="@laneName" 
+                                              OnEdit="@(() => OnEditItem.InvokeAsync(item))"
+                                              OnPublishToggle="@(() => OnPublishToggle.InvokeAsync(item))" />
+                                }
+                                <MudButton Variant="Variant.Text" OnClick="@(() => CollapseBucket(bucket.Key))">
+                                    Show Less
+                                </MudButton>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="2">
+                                @foreach (var item in bucket.Items.Take(3))
+                                {
+                                    var laneName = Lanes?.FirstOrDefault(l => l.Id == item.LaneId)?.Name;
+                                    <ItemCard Item="@item" 
+                                              LaneName="@laneName" 
+                                              OnEdit="@(() => OnEditItem.InvokeAsync(item))"
+                                              OnPublishToggle="@(() => OnPublishToggle.InvokeAsync(item))" />
+                                }
+                                <MudButton Variant="Variant.Outlined" OnClick="@(() => ExpandBucket(bucket.Key))">
+                                    +@(bucket.Items.Count - 3) more
+                                </MudButton>
+                            </MudStack>
+                        }
+                    }
+                </MudPaper>
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    private HashSet<string> _expandedBuckets = new();
+    private const int MaxItemsBeforeCollapse = 5;
+
+    [Parameter]
+    public IReadOnlyList<TimelineItemDto>? Items { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<LaneDto>? Lanes { get; set; }
+
+    [Parameter]
+    public TimelineZoomLevel ZoomLevel { get; set; } = TimelineZoomLevel.Year;
+
+    [Parameter]
+    public EventCallback<TimelineItemDto> OnEditItem { get; set; }
+
+    [Parameter]
+    public EventCallback<TimelineItemDto> OnPublishToggle { get; set; }
+
+    private List<Bucket> GetBuckets()
+    {
+        if (Items == null) return new List<Bucket>();
+
+        var buckets = new Dictionary<string, Bucket>();
+
+        foreach (var item in Items)
+        {
+            var key = GetBucketKey(item.StartDate);
+            if (!buckets.ContainsKey(key))
+            {
+                buckets[key] = new Bucket
+                {
+                    Key = key,
+                    Label = GetBucketLabel(item.StartDate),
+                    Items = new List<TimelineItemDto>()
+                };
+            }
+            buckets[key].Items.Add(item);
+        }
+
+        return buckets.Values.OrderBy(b => b.Key).ToList();
+    }
+
+    private string GetBucketKey(TimelineDate date)
+    {
+        var yearValue = date.Era == TimelineEra.Bce ? -date.Year : date.Year;
+
+        return ZoomLevel switch
+        {
+            TimelineZoomLevel.Decade => $"{(yearValue / 10) * 10}",
+            TimelineZoomLevel.Year => $"{yearValue}",
+            TimelineZoomLevel.Month => $"{yearValue}-{date.Month ?? 0:D2}",
+            TimelineZoomLevel.Day => $"{yearValue}-{date.Month ?? 0:D2}-{date.Day ?? 0:D2}",
+            _ => $"{yearValue}"
+        };
+    }
+
+    private string GetBucketLabel(TimelineDate date)
+    {
+        var yearValue = date.Era == TimelineEra.Bce ? -date.Year : date.Year;
+        var eraLabel = date.Era == TimelineEra.Bce ? " BCE" : "";
+
+        return ZoomLevel switch
+        {
+            TimelineZoomLevel.Decade => $"{Math.Abs((yearValue / 10) * 10)}s{eraLabel}",
+            TimelineZoomLevel.Year => $"{Math.Abs(yearValue)}{eraLabel}",
+            TimelineZoomLevel.Month => date.Month.HasValue 
+                ? $"{GetMonthName(date.Month.Value)} {Math.Abs(yearValue)}{eraLabel}"
+                : $"{Math.Abs(yearValue)}{eraLabel}",
+            TimelineZoomLevel.Day => date.ToDisplayString(),
+            _ => $"{Math.Abs(yearValue)}{eraLabel}"
+        };
+    }
+
+    private string GetMonthName(int month) => month switch
+    {
+        1 => "Jan", 2 => "Feb", 3 => "Mar", 4 => "Apr",
+        5 => "May", 6 => "Jun", 7 => "Jul", 8 => "Aug",
+        9 => "Sep", 10 => "Oct", 11 => "Nov", 12 => "Dec",
+        _ => ""
+    };
+
+    private void ExpandBucket(string key)
+    {
+        _expandedBuckets.Add(key);
+    }
+
+    private void CollapseBucket(string key)
+    {
+        _expandedBuckets.Remove(key);
+    }
+
+    private class Bucket
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public List<TimelineItemDto> Items { get; set; } = new();
+    }
+}

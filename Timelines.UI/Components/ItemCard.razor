@@ -1,0 +1,70 @@
+@using Timelines.Shared.Contracts
+@using MudBlazor
+
+<MudCard Elevation="2" Class="my-2">
+    <MudCardContent>
+        <MudStack Spacing="2">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6">@Item.Title</MudText>
+                @if (Item.IsPublished)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Published</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default">Draft</MudChip>
+                }
+            </MudStack>
+
+            <MudText Typo="Typo.body2" Color="Color.Primary">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                @Item.StartDate.ToDisplayString()
+                @if (Item.EndDate != null)
+                {
+                    <span> - @Item.EndDate.ToDisplayString()</span>
+                }
+            </MudText>
+
+            @if (!string.IsNullOrEmpty(LaneName))
+            {
+                <MudText Typo="Typo.caption">
+                    <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" />
+                    @LaneName
+                </MudText>
+            }
+
+            @if (!string.IsNullOrEmpty(Item.Description))
+            {
+                <MudText Typo="Typo.body2">@Item.Description</MudText>
+            }
+
+            <MudStack Row="true" Spacing="2">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@Item.Type.ToString()</MudChip>
+            </MudStack>
+        </MudStack>
+    </MudCardContent>
+
+    <MudCardActions>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OnEdit.InvokeAsync())">
+            Edit
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="@(Item.IsPublished ? Color.Warning : Color.Success)" 
+                   OnClick="@(() => OnPublishToggle.InvokeAsync())">
+            @(Item.IsPublished ? "Unpublish" : "Publish")
+        </MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired]
+    public TimelineItemDto Item { get; set; } = null!;
+
+    [Parameter]
+    public string? LaneName { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnPublishToggle { get; set; }
+}

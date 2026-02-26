@@ -1,0 +1,70 @@
+@page "/timelines"
+@using Timelines.Shared.Contracts
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudStack Spacing="4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h4">My Timelines</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => OnCreateTimeline.InvokeAsync())">
+                Create Timeline
+            </MudButton>
+        </MudStack>
+
+        @if (Timelines == null || Timelines.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info">
+                You don't have any timelines yet. Click "Create Timeline" to get started!
+            </MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var timeline in Timelines)
+                {
+                    <MudCard Elevation="2" Class="cursor-pointer" @onclick="@(() => OnOpenTimeline.InvokeAsync(timeline.Id))">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.h6">@timeline.Title</MudText>
+                                    <MudStack Row="true" Spacing="1">
+                                        @if (timeline.IsPublic)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info">Public</MudChip>
+                                        }
+                                        @if (timeline.IsIndexed)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Indexed</MudChip>
+                                        }
+                                    </MudStack>
+                                </MudStack>
+
+                                @if (!string.IsNullOrEmpty(timeline.Description))
+                                {
+                                    <MudText Typo="Typo.body2">@timeline.Description</MudText>
+                                }
+
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Updated @timeline.UpdatedUtc.ToString("g")
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </MudStack>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TimelineDto>? Timelines { get; set; }
+
+    [Parameter]
+    public EventCallback OnCreateTimeline { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnOpenTimeline { get; set; }
+}

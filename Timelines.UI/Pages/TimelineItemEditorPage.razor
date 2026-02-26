@@ -1,0 +1,187 @@
+@page "/item/edit"
+@page "/item/create"
+@using Timelines.Shared.Contracts
+@using Timelines.Shared.Domain
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudPaper Elevation="2" Class="pa-6">
+        <MudStack Spacing="4">
+            <MudText Typo="Typo.h5">@(Item == null ? "Create Item" : "Edit Item")</MudText>
+
+            <MudTextField T="string" Label="Title" @bind-Value="_title" 
+                          Variant="Variant.Outlined" Required="true" />
+
+            <MudTextField T="string" Label="Description" @bind-Value="_description" 
+                          Variant="Variant.Outlined" Lines="3" />
+
+            @if (Lanes != null && Lanes.Count > 0)
+            {
+                <MudSelect T="Guid" Label="Lane" @bind-Value="_selectedLaneId" 
+                           Variant="Variant.Outlined" Required="true">
+                    @foreach (var lane in Lanes)
+                    {
+                        <MudSelectItem Value="@lane.Id">@lane.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+            <MudSelect T="TimelineItemType" Label="Type" @bind-Value="_selectedType" 
+                       Variant="Variant.Outlined" Required="true">
+                <MudSelectItem Value="TimelineItemType.Milestone">Milestone</MudSelectItem>
+                <MudSelectItem Value="TimelineItemType.Period">Period</MudSelectItem>
+                <MudSelectItem Value="TimelineItemType.Note">Note</MudSelectItem>
+                <MudSelectItem Value="TimelineItemType.Photo">Photo</MudSelectItem>
+                <MudSelectItem Value="TimelineItemType.Video">Video</MudSelectItem>
+            </MudSelect>
+
+            <MudDivider />
+
+            <MudText Typo="Typo.h6">Start Date</MudText>
+            <BceDatePicker Value="@_startDate" ValueChanged="@OnStartDateChanged" />
+
+            <MudDivider />
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6">End Date</MudText>
+                <MudSwitch T="bool" Label="Ongoing (No End Date)" @bind-Value="_isOngoing" Color="Color.Primary" />
+            </MudStack>
+
+            @if (!_isOngoing)
+            {
+                <BceDatePicker Value="@_endDate" ValueChanged="@OnEndDateChanged" />
+            }
+
+            <MudDivider />
+
+            @if (Tags != null && Tags.Count > 0)
+            {
+                <MudSelect T="Guid" Label="Tags" MultiSelection="true" @bind-SelectedValues="_selectedTagIds" 
+                           Variant="Variant.Outlined">
+                    @foreach (var tag in Tags)
+                    {
+                        <MudSelectItem Value="@tag.Id">@tag.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+            <MudNumericField T="int" Label="Display Order" @bind-Value="_displayOrder" 
+                             Variant="Variant.Outlined" 
+                             HelperText="Lower numbers appear first when items have the same date" />
+
+            @if (Item != null)
+            {
+                <MudSwitch T="bool" Label="Published" @bind-Value="_isPublished" Color="Color.Success" />
+            }
+
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => OnCancel.InvokeAsync())">
+                    Cancel
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleSave" Disabled="@(!IsValid())">
+                    Save
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _title = string.Empty;
+    private string? _description;
+    private Guid _selectedLaneId;
+    private TimelineItemType _selectedType = TimelineItemType.Milestone;
+    private TimelineDate? _startDate;
+    private TimelineDate? _endDate;
+    private bool _isOngoing = false;
+    private bool _isPublished = false;
+    private int _displayOrder = 0;
+    private IReadOnlyCollection<Guid> _selectedTagIds = new HashSet<Guid>();
+
+    [Parameter]
+    public TimelineItemDto? Item { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<LaneDto>? Lanes { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<TagDto>? Tags { get; set; }
+
+    [Parameter]
+    public EventCallback<TimelineItemDto> OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Item != null)
+        {
+            _title = Item.Title;
+            _description = Item.Description;
+            _selectedLaneId = Item.LaneId;
+            _selectedType = Item.Type;
+            _startDate = Item.StartDate;
+            _endDate = Item.EndDate;
+            _isOngoing = Item.EndDate == null;
+            _isPublished = Item.IsPublished;
+            _displayOrder = Item.DisplayOrderTiebreaker;
+        }
+        else if (Lanes != null && Lanes.Count > 0)
+        {
+            _selectedLaneId = Lanes[0].Id;
+        }
+    }
+
+    private void OnStartDateChanged(TimelineDate date)
+    {
+        _startDate = date;
+    }
+
+    private void OnEndDateChanged(TimelineDate date)
+    {
+        _endDate = date;
+    }
+
+    private bool IsValid()
+    {
+        if (string.IsNullOrWhiteSpace(_title)) return false;
+        if (_selectedLaneId == Guid.Empty) return false;
+        if (_startDate == null) return false;
+
+        var startValidation = _startDate.Validate();
+        if (!startValidation.IsValid) return false;
+
+        if (!_isOngoing && _endDate != null)
+        {
+            var endValidation = _endDate.Validate();
+            if (!endValidation.IsValid) return false;
+        }
+
+        return true;
+    }
+
+    private async Task HandleSave()
+    {
+        if (!IsValid()) return;
+
+        var itemDto = new TimelineItemDto(
+            Item?.Id ?? Guid.NewGuid(),
+            Item?.TimelineId ?? Guid.Empty,
+            _selectedLaneId,
+            _selectedType,
+            _title,
+            _description,
+            _startDate!,
+            _isOngoing ? null : _endDate,
+            _isPublished,
+            _isPublished ? DateTimeOffset.UtcNow : null,
+            _displayOrder,
+            Item?.CreatedUtc ?? DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow
+        );
+
+        if (OnSave.HasDelegate)
+            await OnSave.InvokeAsync(itemDto);
+    }
+}
